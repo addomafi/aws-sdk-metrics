@@ -19,7 +19,7 @@ module.exports = exports = function(aws, log) {
     proto._sendBeforeMetrics = proto.send
 
     proto.send = function(callback) {
-      this.on('send', function() {
+      this.on('build', function() {
         this.startedAt = moment()
       });
 
