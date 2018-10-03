@@ -4,6 +4,28 @@ const extend = require('extend')
 const { StringDecoder } = require('string_decoder');
 const decoder = new StringDecoder('utf8');
 
+function generateEvent(context) {
+  return {
+    host: this.httpRequest.endpoint.host,
+    operation: this.operation,
+    duration: moment().diff(this.startedAt) // Calculate the total spend time
+  };
+}
+
+function generateErrorMessages(context) {
+  log('faultDetails', extend({
+    request: {
+      headers    : clone(this.httpRequest.headers),
+      body       : this.httpRequest.body
+    },
+    response: {
+      headers    : clone(this.response.httpResponse.headers),
+      statusCode : this.response.httpResponse.statusCode,
+      body       : decoder.write(this.response.httpResponse.body)
+    }
+  }, event))
+}
+
 module.exports = exports = function(aws, log) {
   log = log || exports.log
 
@@ -24,23 +46,10 @@ module.exports = exports = function(aws, log) {
       });
 
       this.on('complete', function(response) {
-        var event = {
-          host: this.httpRequest.endpoint.host,
-          operation: this.operation,
-          duration: moment().diff(this.startedAt) // Calculate the total spend time
-        };
+        var event = generateEvent(this);
+        console.log(event);
         if (response.error) {
-          log('faultDetails', extend({
-              request: {
-                headers    : clone(this.httpRequest.headers),
-                body       : this.httpRequest.body
-              },
-              response: {
-                headers    : clone(this.response.httpResponse.headers),
-                statusCode : this.response.httpResponse.statusCode,
-                body       : decoder.write(this.response.httpResponse.body)
-              }
-            }, event))
+          generateErrorMessages(this);
         } else {
           console.info(JSON.stringify(event))
         }
@@ -48,10 +57,41 @@ module.exports = exports = function(aws, log) {
       return proto._sendBeforeMetrics.apply(this, arguments)
     }
   }
+
+  // Overwrite promise module
+  proto.promise = function promise() {
+    var self = this;
+
+    // append to user agent
+    this.httpRequest.appendToUserAgent('promise');
+    return new Promise(function(resolve, reject) {
+      self.on('build', function() {
+        this.startedAt = moment()
+      });
+  
+      self.on('complete', function(response) {
+        var event = generateEvent(self);
+  
+        if (response.error) {
+          generateErrorMessages(self);
+          reject(response.error);
+        } else {
+          console.info(JSON.stringify(event))
+          resolve(Object.defineProperty(
+            response.data || {},
+            '$response',
+            { value: response }
+          ))
+        }
+      });
+  
+      self.runTo();
+    });
+  };
 }
 
 exports.log = function(type, data) {
   var toLog = {}
-  toLog[type] = data
+  toLog[type] = data;
   console.error(JSON.stringify(toLog))
 }
