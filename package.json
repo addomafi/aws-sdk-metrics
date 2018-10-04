@@ -24,7 +24,7 @@
   "devDependencies": {
     "aws-sdk-mock": "^1.7.0",
     "mocha": "^4.0.1",
-    "should": "~4.0.4",
+    "should": "^13.2.3",
     "sinon": "^6.3.5"
   },
   "dependencies": {

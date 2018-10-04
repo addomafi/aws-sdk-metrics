@@ -9,68 +9,62 @@ const moment = require('moment');
 AWS.config.update({region:'us-east-1'});
 
 describe('aws-sdk-metrics', function() {
-  let logSpy;
-  let momentDiffStub;
+  let errorSpy;
+
+  before(() => {
+    require('../')(AWS);
+  })
 
   beforeEach(function() {
-    require('../')(AWS)
-    logSpy = sinon.spy(console, 'log');
-    momentDiffStub = sinon.stub(moment.fn, 'diff');
+    errorSpy = sinon.spy(console, 'error');
   });
 
   afterEach((function() {
-    logSpy.restore();
-    momentDiffStub.restore();
+    errorSpy.restore();
   }))
 
-  // it('should get metrics', function(done) {
-  //   AWS_mock.mock('DynamoDB', 'batchWriteItem', (params, callback) => {
-  //     callback(null, {});
-  //   });
-
-  //   var dynamoDB = new AWS.DynamoDB()
-  //   dynamoDB.batchWriteItem({
-  //         RequestItems: {
-  //           Airport: [
-  //             {
-  //               PutRequest: {
-  //                 Item: {
-  //                     airportCode: {"S": "GRU"},
-  //                     airportName: {"S": "Guarulhos"}
-  //                 }
-  //               }
-  //             }
-  //           ]
-  //         }
-  //     }, 
-  //     function(err, data) {
-  //       sinon.assert.calledOnce(logSpy);
-  //       done();
-  //     }
-  //   );
-  // });
-
-  it('should get metrics when promise', function(done) {
-    momentDiffStub.callsFake(() => 3);
-
+  it('should get metrics', function(done) {
     var dynamoDB = new AWS.DynamoDB()
     dynamoDB.batchWriteItem({
-            RequestItems: {
-              Airport: [
-                {
-                  PutRequest: {
-                    Item: {
-                        airportCode: {"S": "GRU"},
-                        airportName: {"S": "Guarulhos"}
-                    }
-                  }
-                }
-              ]
+      RequestItems: {
+        Airport: [
+          {
+            PutRequest: {
+              Item: {
+                  airportCode: {"S": "GRU"},
+                  airportName: {"S": "Guarulhos"}
+              }
             }
-        }, function(err, data){
-        console.log(JSON.stringify(err));
+          }
+        ]
+      }
+    }, 
+    (err, data) => {
+      sinon.assert.calledOnce(errorSpy);
+      done();
     });
-    
-    done();
+  });
+
+  it('should get metrics when promise', function(done) {
+    var dynamoDB = new AWS.DynamoDB()
+    dynamoDB.batchWriteItem({
+      RequestItems: {
+        Airport: [
+          {
+            PutRequest: {
+              Item: {
+                  airportCode: {"S": "GRU"},
+                  airportName: {"S": "Guarulhos"}
+              }
+            }
+          }
+        ]
+      }
+    }).promise()
+      .then(() => done(new Error('This should not appear')))
+      .catch(() => {
+        sinon.assert.calledOnce(errorSpy);
+        done();
+      })
   });
 });

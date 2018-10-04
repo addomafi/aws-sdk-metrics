@@ -6,22 +6,22 @@ const decoder = new StringDecoder('utf8');
 
 function generateEvent(context) {
   return {
-    host: this.httpRequest.endpoint.host,
-    operation: this.operation,
-    duration: moment().diff(this.startedAt) // Calculate the total spend time
+    host: context.httpRequest.endpoint.host,
+    operation: context.operation,
+    duration: moment().diff(context.startedAt) // Calculate the total spend time
   };
 }
 
-function generateErrorMessages(context) {
+function generateErrorMessages(context, event, log) {
   log('faultDetails', extend({
     request: {
-      headers    : clone(this.httpRequest.headers),
-      body       : this.httpRequest.body
+      headers    : clone(context.httpRequest.headers),
+      body       : context.httpRequest.body
     },
     response: {
-      headers    : clone(this.response.httpResponse.headers),
-      statusCode : this.response.httpResponse.statusCode,
-      body       : decoder.write(this.response.httpResponse.body)
+      headers    : clone(context.response.httpResponse.headers),
+      statusCode : context.response.httpResponse.statusCode,
+      body       : decoder.write(context.response.httpResponse.body)
     }
   }, event))
 }
@@ -47,9 +47,8 @@ module.exports = exports = function(aws, log) {
 
       this.on('complete', function(response) {
         var event = generateEvent(this);
-        console.log(event);
         if (response.error) {
-          generateErrorMessages(this);
+          generateErrorMessages(this, event, log);
         } else {
           console.info(JSON.stringify(event))
         }
@@ -73,7 +72,7 @@ module.exports = exports = function(aws, log) {
         var event = generateEvent(self);
   
         if (response.error) {
-          generateErrorMessages(self);
+          generateErrorMessages(this, event, log);
           reject(response.error);
         } else {
           console.info(JSON.stringify(event))
