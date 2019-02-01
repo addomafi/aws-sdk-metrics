@@ -1,18 +1,20 @@
 var assert   = require('assert'),
     should   = require('should'),
-    AWS_mock = require('aws-sdk-mock'),
-    AWS      = require('aws-sdk'),
     sinon    = require('sinon');
+const moment = require('moment'),
+    zlib = require('zlib'),
+    AWS = require('aws-sdk');
 
-const moment = require('moment');
-
-AWS.config.update({region:'us-east-1'});
+var AWSMOCK = require('aws-sdk-mock');
+AWSMOCK.mock('DynamoDB', 'batchWriteItem', function (params, callback) {
+  callback(null, "successfully batch Overwrite item in database");
+});
+var dynamoDB = new AWS.DynamoDB();
 
 describe('aws-sdk-metrics', function() {
   let errorSpy;
 
   before(() => {
-    require('../')(AWS);
   })
 
   beforeEach(function() {
@@ -24,7 +26,6 @@ describe('aws-sdk-metrics', function() {
   }))
 
   it('should get metrics', function(done) {
-    var dynamoDB = new AWS.DynamoDB()
     dynamoDB.batchWriteItem({
       RequestItems: {
         Airport: [
@@ -38,16 +39,18 @@ describe('aws-sdk-metrics', function() {
           }
         ]
       }
-    }, 
-    (err, data) => {
-      sinon.assert.calledOnce(errorSpy);
-      done();
+    },
+    function (err, data) {
+      if (err) {
+        done(err)
+      } else {
+        done();
+      }
     });
   });
 
   it('should get metrics when promise', function(done) {
-    var dynamoDB = new AWS.DynamoDB()
-    dynamoDB.batchWriteItem({
+    (new AWS.DynamoDB()).batchWriteItem({
       RequestItems: {
         Airport: [
           {
@@ -61,10 +64,11 @@ describe('aws-sdk-metrics', function() {
         ]
       }
     }).promise()
-      .then(() => done(new Error('This should not appear')))
-      .catch(() => {
-        sinon.assert.calledOnce(errorSpy);
+      .then(data => {
         done();
+      })
+      .catch(err => {
+        done(err)
       })
   });
 });
