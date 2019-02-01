@@ -6,12 +6,10 @@ node_js:
 cache: npm
 install:
   - npm install
+  - npm install -g mocha
 script:
+  - npm run lint
   - npm run test
-  - codecov
-branches:
-  except:
-    - '/^v\d+\.\d+\.\d+$/'
 jobs:
   include:
     - stage: release
