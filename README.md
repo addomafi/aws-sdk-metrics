@@ -1,4 +1,4 @@
-# aws-sdk-metrics
+# aws-sdk-metrics [![Build Status](https://travis-ci.org/addomafi/aws-sdk-metrics.svg?branch=master)](https://travis-ci.org/addomafi/aws-sdk-metrics)
 
 This Node.js module provides an easy way to get metrics from HTTP(S) requests performed
 by the [`aws-sdk` module](https://github.com/aws/aws-sdk-js)
